@@ -236,6 +236,54 @@ def diagnose():
     
     return jsonify(report), 200
 
+import base64
+
+def send_via_google_webhook(from_name, to, cc, bcc, subject, body, attachments_files):
+    url = get_sheet_webhook_url()
+    if not url:
+        return False, "Google Sheet Webhook URL is not configured."
+    try:
+        encoded_attachments = []
+        for file in attachments_files:
+            if not file or file.filename == '':
+                continue
+            file.seek(0)
+            content = file.read()
+            encoded_attachments.append({
+                'filename': file.filename,
+                'contentType': file.content_type or 'application/octet-stream',
+                'base64': base64.b64encode(content).decode('utf-8')
+            })
+        
+        payload = {
+            'type': 'send_email',
+            'from_name': from_name,
+            'to': to,
+            'cc': cc,
+            'bcc': bcc,
+            'subject': subject,
+            'body': body,
+            'attachments': encoded_attachments
+        }
+        
+        import urllib.request
+        req_data = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+        req = urllib.request.Request(
+            url,
+            data=req_data,
+            headers={'Content-Type': 'application/json; charset=utf-8', 'User-Agent': 'Mozilla/5.0'},
+            method='POST'
+        )
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            raw = resp.read().decode('utf-8')
+            res_json = json.loads(raw)
+            if res_json.get('status') == 'success':
+                return True, "Email sent successfully via Google Engine!"
+            else:
+                return False, res_json.get('message', 'Webhook dispatch failed')
+    except Exception as e:
+        return False, str(e)
+
 # --- Send Email Endpoint ---
 @app.route('/send-email', methods=['POST'])
 def send_email():
@@ -249,11 +297,7 @@ def send_email():
         login_pass = sender_config.get('login_pass', '').strip()
         from_header = sender_config.get('from_header', '')
         envelope_sender = sender_config.get('envelope_sender', login_user)
-
-        if not login_user or not login_pass:
-            return jsonify({
-                'error': f'Credentials for account "{sender_id}" are not configured in the environment variables.'
-            }), 400
+        display_name = sender_config.get('display_name', from_header)
 
         smtp_service = os.getenv('SMTP_SERVICE', 'smtp.gmail.com').strip()
         smtp_port = os.getenv('SMTP_PORT', '465').strip()
@@ -267,123 +311,95 @@ def send_email():
         if not recipient:
             return jsonify({'error': 'Recipient email ("To") is required.'}), 400
 
-        msg = MIMEMultipart()
-        msg['From'] = from_header
-        msg['To'] = recipient
-        if cc:
-            msg['Cc'] = cc
-        msg['Subject'] = subject
-
-        # Attach text body
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
-
-        # Attachments
         attachments = request.files.getlist('attachments')
-        for file in attachments:
-            if not file or file.filename == '':
-                continue
-            
-            try:
-                file_content = file.read()
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(file_content)
-                encoders.encode_base64(part)
-                
-                part.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename="{file.filename}"'
-                )
-                msg.attach(part)
-            except Exception as upload_err:
-                return jsonify({
-                    'error': f'Failed to process attachment "{file.filename}": {str(upload_err)}'
-                }), 500
 
-        try:
-            port = int(smtp_port)
-        except ValueError:
-            port = 465
-
-        to_list = [r.strip() for r in recipient.split(',') if r.strip()]
-        cc_list = [r.strip() for r in cc.split(',') if r.strip()] if cc else []
-        bcc_list = [r.strip() for r in bcc.split(',') if r.strip()] if bcc else []
-        all_recipients = to_list + cc_list + bcc_list
-
+        # Try SMTP first (works locally / on paid cloud)
+        smtp_success = False
+        smtp_error_msg = ""
         server = None
-        auth_passwords_to_try = [login_pass]
-        if ' ' in login_pass:
-            auth_passwords_to_try.append(login_pass.replace(' ', ''))
 
-        # Direct SSL connection (Fast & Never blocked on Render)
-        try:
-            print(f"Connecting to SMTP server {smtp_service} via SSL (port {port})...")
-            if port == 465:
-                server = smtplib.SMTP_SSL(smtp_service, 465, timeout=20)
-            else:
-                server = smtplib.SMTP(smtp_service, port, timeout=20)
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-            
-            # Login
-            logged_in = False
-            last_err = None
-            for pwd in auth_passwords_to_try:
+        if login_user and login_pass:
+            try:
+                port = int(smtp_port) if smtp_port.isdigit() else 465
+                to_list = [r.strip() for r in recipient.split(',') if r.strip()]
+                cc_list = [r.strip() for r in cc.split(',') if r.strip()] if cc else []
+                bcc_list = [r.strip() for r in bcc.split(',') if r.strip()] if bcc else []
+                all_recipients = to_list + cc_list + bcc_list
+
+                msg = MIMEMultipart()
+                msg['From'] = from_header
+                msg['To'] = recipient
+                if cc:
+                    msg['Cc'] = cc
+                msg['Subject'] = subject
+                msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+                for file in attachments:
+                    if not file or file.filename == '':
+                        continue
+                    file.seek(0)
+                    file_content = file.read()
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(file_content)
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f'attachment; filename="{file.filename}"')
+                    msg.attach(part)
+
+                # Connect SMTP with 5-second short timeout on cloud
+                if port == 465:
+                    server = smtplib.SMTP_SSL(smtp_service, 465, timeout=6)
+                else:
+                    server = smtplib.SMTP(smtp_service, port, timeout=6)
+                    server.ehlo()
+                    server.starttls()
+                    server.ehlo()
+
+                # Login
+                auth_pwds = [login_pass]
+                if ' ' in login_pass:
+                    auth_pwds.append(login_pass.replace(' ', ''))
+                
+                for pwd in auth_pwds:
+                    try:
+                        server.login(login_user, pwd)
+                        break
+                    except Exception:
+                        pass
+
                 try:
-                    server.login(login_user, pwd)
-                    logged_in = True
-                    break
-                except smtplib.SMTPAuthenticationError as auth_e:
-                    last_err = auth_e
-            
-            if not logged_in:
-                return jsonify({
-                    'error': f'Authentication failed for {login_user}: {str(last_err)}. Please verify app password in Render Environment Variables.'
-                }), 401
-
-        except Exception as conn_err:
-            print(f"Primary SSL connection failed: {conn_err}. Trying fallback...")
-            try:
-                server = smtplib.SMTP_SSL(smtp_service, 465, timeout=20)
-                server.login(login_user, auth_passwords_to_try[0])
-            except Exception as fallback_err:
-                print(f"SMTP Fallback failed: {fallback_err}")
-                return jsonify({
-                    'error': f'SMTP Connection Error ({smtp_service}): {str(fallback_err)}'
-                }), 500
-
-        try:
-            print(f"Sending email from {from_header} (Envelope: {envelope_sender}) to {all_recipients}...")
-            try:
-                server.sendmail(envelope_sender, all_recipients, msg.as_string())
-            except smtplib.SMTPResponseException:
-                server.sendmail(login_user, all_recipients, msg.as_string())
-            
-            print("Closing SMTP connection...")
-            try:
-                server.quit()
-            except Exception:
-                pass
-            print("Email sent successfully!")
-            return jsonify({'message': f'Email sent successfully from {from_header}!'}), 200
-        except Exception as send_err:
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                'error': f'Failed to send email: {str(send_err)}'
-            }), 500
-        finally:
-            if server:
+                    server.sendmail(envelope_sender, all_recipients, msg.as_string())
+                except Exception:
+                    server.sendmail(login_user, all_recipients, msg.as_string())
+                
                 try:
-                    server.close()
+                    server.quit()
                 except Exception:
                     pass
-    except Exception as general_err:
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'error': f'Server error: {str(general_err)}'
-        }), 500
+                smtp_success = True
+                print("Email dispatched via Direct SMTP successfully!")
+                return jsonify({'message': f'Email sent successfully from {from_header}!'}), 200
+            except Exception as smtp_err:
+                smtp_error_msg = str(smtp_err)
+                print(f"Direct SMTP unavailable ({smtp_err}). Switching to Google Webhook HTTPS Engine...")
+            finally:
+                if server:
+                    try:
+                        server.close()
+                    except Exception:
+                        pass
+
+        # Fallback to Google Webhook HTTPS Engine (100% bypasses Render SMTP port blocks!)
+        from_name = f"Easysell-Surat Billing.{sender_id}"
+        if sender_id == 'flipkart':
+            from_name = "Billing.Flipkart"
+
+        hook_ok, hook_msg = send_via_google_webhook(from_name, recipient, cc, bcc, subject, body, attachments)
+        if hook_ok:
+            return jsonify({'message': f'Email sent successfully from {from_header} (via Google Engine)!'}), 200
+        else:
+            return jsonify({
+                'error': f'Failed to dispatch email. SMTP Error: {smtp_error_msg} | Webhook Error: {hook_msg}'
+            }), 500
 
 @app.errorhandler(500)
 def internal_server_error(e):

@@ -1,29 +1,23 @@
 /**
  * =========================================================================
- * BRANDCENTRAL MAILER - GOOGLE APPS SCRIPT DATABASE BACKEND
+ * BRANDCENTRAL MAILER - GOOGLE APPS SCRIPT ENGINE (DATABASE & HTTP DISPATCH)
  * =========================================================================
  * 
- * INSTRUCTIONS TO DEPLOY:
- * 1. Open your Google Sheet.
+ * INSTRUCTIONS TO UPDATE DEPLOYMENT:
+ * 1. Open your Google Sheet: https://docs.google.com/spreadsheets/d/1Xhyx10n3-kCIQpXiFPZrUgXgB_PJiYyxP_vrKiD-RkA/edit
  * 2. Click on "Extensions" > "Apps Script".
- * 3. Delete any default code and paste this ENTIRE code into the editor.
- * 4. Click "Deploy" > "New deployment".
- * 5. Click the gear icon (⚙️) next to "Select type" and choose "Web app".
- * 6. Set the following options:
- *    - Description: BrandCentral Mailer Sync Engine
- *    - Execute as: Me (your Google account)
+ * 3. Delete old code, paste this ENTIRE updated code.
+ * 4. Click "Deploy" > "Manage deployments" (or "New deployment").
+ * 5. Edit the active deployment (or create new version):
+ *    - Version: New version
  *    - Who has access: Anyone  <-- (VERY IMPORTANT!)
- * 7. Click "Deploy", authorize access if prompted, and COPY the "Web app URL"
- *    (looks like https://script.google.com/macros/s/AKfycb.../exec).
- * 8. Paste that Web App URL in your project .env file as:
- *    GOOGLE_SHEET_WEBHOOK_URL="https://script.google.com/macros/s/.../exec"
+ * 6. Click "Deploy" and authorize access if prompted.
  * =========================================================================
  */
 
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Ensure tabs exist
   var emailsSheet = ss.getSheetByName('Emails');
   var templatesSheet = ss.getSheetByName('Templates');
   
@@ -136,7 +130,52 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Action 3: Log Sent Email
+  // Action 3: Send Email via Google Cloud API (Never blocked on Render Free Tier!)
+  if (actionType === 'send_email') {
+    try {
+      var to = payload.to;
+      var subject = payload.subject || '(No Subject)';
+      var body = payload.body || '';
+      var fromName = payload.from_name || 'BrandCentral Mailer';
+      
+      var options = {
+        name: fromName
+      };
+      if (payload.cc) options.cc = payload.cc;
+      if (payload.bcc) options.bcc = payload.bcc;
+      
+      // Attachments support
+      if (payload.attachments && payload.attachments.length > 0) {
+        var blobs = [];
+        for (var a = 0; a < payload.attachments.length; a++) {
+          var att = payload.attachments[a];
+          var bytes = Utilities.base64Decode(att.base64);
+          var blob = Utilities.newBlob(bytes, att.contentType || 'application/octet-stream', att.filename);
+          blobs.push(blob);
+        }
+        options.attachments = blobs;
+      }
+      
+      GmailApp.sendEmail(to, subject, body, options);
+      
+      // Log Sent Record
+      var logSheet = ss.getSheetByName('Sent_Logs');
+      if (!logSheet) {
+        logSheet = ss.insertSheet('Sent_Logs');
+        logSheet.appendRow(['Timestamp', 'From Name', 'To Recipient', 'Cc', 'Subject', 'Status']);
+        logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#f1f5f9');
+      }
+      logSheet.appendRow([new Date(), fromName, to, payload.cc || '', subject, 'SENT']);
+
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Email sent successfully via Google Engine!' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (sendErr) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: sendErr.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  // Action 4: Log Sent Email
   if (actionType === 'log_sent_email') {
     var logSheet = ss.getSheetByName('Sent_Logs');
     if (!logSheet) {
