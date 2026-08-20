@@ -488,7 +488,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            const data = await response.json();
+            let data = {};
+            const text = await response.text();
+            try {
+                data = JSON.parse(text);
+            } catch (err) {
+                data = { error: `Server error (${response.status}): Please check server logs or Render environment variables.` };
+            }
 
             if (response.ok) {
                 showToast(data.message || 'Email sent successfully!', 'success', 'Dispatched');
@@ -502,11 +508,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 singleTemplateSelect.value = '';
                 document.querySelectorAll('#singleModeView .badge-count').forEach(b => b.style.display = 'none');
             } else {
-                showToast(data.error || 'Failed to send email.', 'error', 'SMTP Error');
+                showToast(data.error || 'Failed to send email.', 'error', 'SMTP / Server Error');
             }
         } catch (error) {
             console.error('Request failed:', error);
-            showToast('Could not reach Flask server.', 'error', 'Connection Error');
+            showToast('Could not complete request: ' + error.message, 'error', 'Connection Error');
         } finally {
             singleSendBtn.disabled = false;
             singleSendBtn.querySelector('.send-label').style.display = 'flex';
@@ -762,7 +768,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: formData
                 });
 
-                const data = await response.json();
+                let data = {};
+                const text = await response.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    data = { error: `Server error (${response.status}): Check Render logs or environment variables.` };
+                }
 
                 if (response.ok) {
                     card.statusBadge.textContent = 'Sent ✓';

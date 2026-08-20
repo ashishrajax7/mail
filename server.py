@@ -276,27 +276,38 @@ def send_email():
         except ValueError:
             port = 587
 
-        try:
-            to_list = [r.strip() for r in recipient.split(',') if r.strip()]
-            cc_list = [r.strip() for r in cc.split(',') if r.strip()] if cc else []
-            bcc_list = [r.strip() for r in bcc.split(',') if r.strip()] if bcc else []
-            all_recipients = to_list + cc_list + bcc_list
+        to_list = [r.strip() for r in recipient.split(',') if r.strip()]
+        cc_list = [r.strip() for r in cc.split(',') if r.strip()] if cc else []
+        bcc_list = [r.strip() for r in bcc.split(',') if r.strip()] if bcc else []
+        all_recipients = to_list + cc_list + bcc_list
 
+        server = None
+        # Try primary port first, then fallback to SSL (465) if 587 fails
+        try:
             print(f"Connecting to SMTP server {smtp_service}:{port}...")
             if port == 465:
-                server = smtplib.SMTP_SSL(smtp_service, port, timeout=600)
+                server = smtplib.SMTP_SSL(smtp_service, port, timeout=25)
             else:
-                server = smtplib.SMTP(smtp_service, port, timeout=600)
-            
-            server.set_debuglevel(1)
-            
-            if port != 465:
+                server = smtplib.SMTP(smtp_service, port, timeout=25)
+                server.ehlo()
                 print("Starting STARTTLS...")
                 server.starttls()
+                server.ehlo()
             
             print(f"Logging in as {login_user}...")
             server.login(login_user, login_pass)
-            
+        except Exception as conn_err:
+            print(f"Primary connection on port {port} failed: {conn_err}. Trying SSL on port 465...")
+            try:
+                server = smtplib.SMTP_SSL(smtp_service, 465, timeout=25)
+                server.login(login_user, login_pass)
+            except Exception as fallback_err:
+                print(f"Fallback connection failed: {fallback_err}")
+                return jsonify({
+                    'error': f'Failed to connect/authenticate to SMTP ({smtp_service}): {str(fallback_err)}. Please verify app password in Environment Variables.'
+                }), 500
+
+        try:
             print(f"Sending email from {from_header} (Envelope: {envelope_sender}) to {all_recipients}...")
             try:
                 server.sendmail(envelope_sender, all_recipients, msg.as_string())
@@ -309,7 +320,7 @@ def send_email():
             return jsonify({'message': f'Email sent successfully from {from_header}!'}), 200
         except smtplib.SMTPAuthenticationError:
             return jsonify({
-                'error': f'Authentication failed for {login_user}. Please check the app password in .env file.'
+                'error': f'Authentication failed for {login_user}. Please check the app password in Render Environment Variables.'
             }), 401
         except Exception as e:
             import traceback
@@ -317,11 +328,17 @@ def send_email():
             return jsonify({
                 'error': f'Failed to send email: {str(e)}'
             }), 500
+        finally:
+            if server:
+                try:
+                    server.close()
+                except Exception:
+                    pass
     except Exception as general_err:
         import traceback
         traceback.print_exc()
         return jsonify({
-            'error': f'An unexpected server error occurred: {str(general_err)}'
+            'error': f'Server error: {str(general_err)}'
         }), 500
 
 if __name__ == '__main__':
