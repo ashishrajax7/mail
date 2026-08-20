@@ -310,48 +310,46 @@ def send_email():
         all_recipients = to_list + cc_list + bcc_list
 
         server = None
-        # Try connecting with fallback
         auth_passwords_to_try = [login_pass]
         if ' ' in login_pass:
             auth_passwords_to_try.append(login_pass.replace(' ', ''))
 
-        def connect_and_login(p):
-            srv = None
-            if p == 465:
-                srv = smtplib.SMTP_SSL(smtp_service, 465, timeout=20)
+        # Direct SSL connection (Fast & Never blocked on Render)
+        try:
+            print(f"Connecting to SMTP server {smtp_service} via SSL (port {port})...")
+            if port == 465:
+                server = smtplib.SMTP_SSL(smtp_service, 465, timeout=20)
             else:
-                srv = smtplib.SMTP(smtp_service, p, timeout=20)
-                srv.ehlo()
-                srv.starttls()
-                srv.ehlo()
+                server = smtplib.SMTP(smtp_service, port, timeout=20)
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
             
-            # Try passwords
+            # Login
             logged_in = False
-            last_auth_err = None
+            last_err = None
             for pwd in auth_passwords_to_try:
                 try:
-                    srv.login(login_user, pwd)
+                    server.login(login_user, pwd)
                     logged_in = True
                     break
-                except smtplib.SMTPAuthenticationError as a_err:
-                    last_auth_err = a_err
+                except smtplib.SMTPAuthenticationError as auth_e:
+                    last_err = auth_e
             
             if not logged_in:
-                raise last_auth_err or Exception(f"Auth failed for {login_user}")
-            return srv
-
-        try:
-            print(f"Connecting to SMTP server {smtp_service}:{port}...")
-            server = connect_and_login(port)
-        except Exception as conn_err:
-            alt_port = 465 if port != 465 else 587
-            print(f"Port {port} failed: {conn_err}. Trying alternate port {alt_port}...")
-            try:
-                server = connect_and_login(alt_port)
-            except Exception as fallback_err:
-                print(f"Both ports failed: {fallback_err}")
                 return jsonify({
-                    'error': f'SMTP Connection/Auth Error: {str(fallback_err)}. Check app password or Render environment variables.'
+                    'error': f'Authentication failed for {login_user}: {str(last_err)}. Please verify app password in Render Environment Variables.'
+                }), 401
+
+        except Exception as conn_err:
+            print(f"Primary SSL connection failed: {conn_err}. Trying fallback...")
+            try:
+                server = smtplib.SMTP_SSL(smtp_service, 465, timeout=20)
+                server.login(login_user, auth_passwords_to_try[0])
+            except Exception as fallback_err:
+                print(f"SMTP Fallback failed: {fallback_err}")
+                return jsonify({
+                    'error': f'SMTP Connection Error ({smtp_service}): {str(fallback_err)}'
                 }), 500
 
         try:
@@ -368,15 +366,11 @@ def send_email():
                 pass
             print("Email sent successfully!")
             return jsonify({'message': f'Email sent successfully from {from_header}!'}), 200
-        except smtplib.SMTPAuthenticationError as auth_err:
-            return jsonify({
-                'error': f'Authentication failed for {login_user}: {str(auth_err)}. Please check app password in Render.'
-            }), 401
-        except Exception as e:
+        except Exception as send_err:
             import traceback
             traceback.print_exc()
             return jsonify({
-                'error': f'Failed to send email: {str(e)}'
+                'error': f'Failed to send email: {str(send_err)}'
             }), 500
         finally:
             if server:
@@ -390,6 +384,22 @@ def send_email():
         return jsonify({
             'error': f'Server error: {str(general_err)}'
         }), 500
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    import traceback
+    return jsonify({
+        'error': 'Internal Server Error (500)',
+        'details': str(e)
+    }), 500
+
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    import traceback
+    return jsonify({
+        'error': f'Unhandled Server Error: {str(e)}',
+        'details': traceback.format_exc()
+    }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
