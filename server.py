@@ -242,12 +242,18 @@ def send_email():
     try:
         sender_id = request.form.get('sender_id', 'ajio')
         sender_config = get_sender_config(sender_id)
-        
         if not sender_config:
             return jsonify({'error': f'Invalid sender account "{sender_id}" selected.'}), 400
 
-        login_user = login_user.strip()
-        login_pass = login_pass.strip()
+        login_user = sender_config.get('login_user', '').strip()
+        login_pass = sender_config.get('login_pass', '').strip()
+        from_header = sender_config.get('from_header', '')
+        envelope_sender = sender_config.get('envelope_sender', login_user)
+
+        if not login_user or not login_pass:
+            return jsonify({
+                'error': f'Credentials for account "{sender_id}" are not configured in the environment variables.'
+            }), 400
 
         smtp_service = os.getenv('SMTP_SERVICE', 'smtp.gmail.com').strip()
         smtp_port = os.getenv('SMTP_PORT', '465').strip()
