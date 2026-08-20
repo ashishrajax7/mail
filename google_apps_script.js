@@ -3,17 +3,33 @@
  * BRANDCENTRAL MAILER - GOOGLE APPS SCRIPT ENGINE (DATABASE & HTTP DISPATCH)
  * =========================================================================
  * 
- * INSTRUCTIONS TO UPDATE DEPLOYMENT:
+ * STEP-BY-STEP INSTRUCTIONS:
  * 1. Open your Google Sheet: https://docs.google.com/spreadsheets/d/1Xhyx10n3-kCIQpXiFPZrUgXgB_PJiYyxP_vrKiD-RkA/edit
- * 2. Click on "Extensions" > "Apps Script".
- * 3. Delete old code, paste this ENTIRE updated code.
- * 4. Click "Deploy" > "Manage deployments" (or "New deployment").
- * 5. Edit the active deployment (or create new version):
- *    - Version: New version
- *    - Who has access: Anyone  <-- (VERY IMPORTANT!)
- * 6. Click "Deploy" and authorize access if prompted.
+ * 2. Click "Extensions" > "Apps Script".
+ * 3. Delete old code and PASTE this entire updated script.
+ * 4. Save (Ctrl+S).
+ * 
+ * 5. ⭐ GRANT PERMISSION (1-TIME ONLY) ⭐:
+ *    - In the toolbar dropdown at the top, select "grantPermissions".
+ *    - Click the "Run" (▶️) button.
+ *    - A popup will say "Authorization required".
+ *    - Click "Review permissions" -> Choose your Account -> Click "Advanced" -> Click "Go to BrandCentral (unsafe)" -> Click "Allow".
+ * 
+ * 6. DEPLOY NEW VERSION:
+ *    - Click "Deploy" > "Manage deployments".
+ *    - Click the Pencil (Edit) icon next to the active Web App.
+ *    - In "Version", choose "New version".
+ *    - "Who has access": "Anyone" (VERY IMPORTANT).
+ *    - Click "Deploy".
  * =========================================================================
  */
+
+// Function to trigger Google permission authorization dialog
+function grantPermissions() {
+  Logger.log("Authorizing permissions for Google Sheets and MailApp...");
+  var quota = MailApp.getRemainingDailyQuota();
+  Logger.log("Remaining Daily Email Quota: " + quota);
+}
 
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -89,7 +105,6 @@ function doPost(e) {
       sheet = ss.insertSheet('Emails');
     }
     sheet.clear();
-    // Headers
     sheet.appendRow(['ID', 'Name', 'Email']);
     sheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#f1f5f9');
     
@@ -113,7 +128,6 @@ function doPost(e) {
       sheet = ss.insertSheet('Templates');
     }
     sheet.clear();
-    // Headers
     sheet.appendRow(['ID', 'Name', 'Subject', 'Body']);
     sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#f1f5f9');
     
@@ -156,9 +170,14 @@ function doPost(e) {
         options.attachments = blobs;
       }
       
-      GmailApp.sendEmail(to, subject, body, options);
+      // Send using MailApp or GmailApp
+      try {
+        MailApp.sendEmail(to, subject, body, options);
+      } catch (mailErr) {
+        GmailApp.sendEmail(to, subject, body, options);
+      }
       
-      // Log Sent Record
+      // Log Sent Record in Sheet
       var logSheet = ss.getSheetByName('Sent_Logs');
       if (!logSheet) {
         logSheet = ss.insertSheet('Sent_Logs');
