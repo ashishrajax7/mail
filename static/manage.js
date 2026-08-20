@@ -395,6 +395,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Could not read backup file. Invalid JSON.', 'error');
             }
         });
+    }
+
     // Quota Fetcher
     async function fetchQuota() {
         try {
