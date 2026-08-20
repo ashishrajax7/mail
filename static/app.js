@@ -478,9 +478,14 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('attachments', file);
         });
 
-        singleSendBtn.disabled = true;
-        singleSendBtn.querySelector('.send-label').style.display = 'none';
-        singleBtnLoader.style.display = 'inline-block';
+        console.log('Dispatching email request with payload:', {
+            sender: singleSenderIdInput.value,
+            to: recipient,
+            cc: singleCcInput.value.trim(),
+            bcc: singleBccInput.value.trim(),
+            subject: singleSubjectInput.value.trim(),
+            attachmentsCount: singleFiles.length
+        });
 
         try {
             const response = await fetch('/send-email', {
@@ -488,15 +493,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
+            console.log('Server response status:', response.status);
             let data = {};
             const text = await response.text();
+            console.log('Server raw response text:', text);
+
             try {
                 data = JSON.parse(text);
             } catch (err) {
-                data = { error: `Server error (${response.status}): Please check server logs or Render environment variables.` };
+                data = { error: `Server error (${response.status}): ${text.substring(0, 200)}` };
             }
 
             if (response.ok) {
+                console.log('Email dispatched successfully:', data);
                 showToast(data.message || 'Email sent successfully!', 'success', 'Dispatched');
                 singleToInput.value = '';
                 singleCcInput.value = '';
@@ -508,10 +517,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 singleTemplateSelect.value = '';
                 document.querySelectorAll('#singleModeView .badge-count').forEach(b => b.style.display = 'none');
             } else {
+                console.error('SMTP / Server dispatch error:', data);
                 showToast(data.error || 'Failed to send email.', 'error', 'SMTP / Server Error');
             }
         } catch (error) {
-            console.error('Request failed:', error);
+            console.error('Fetch request failed:', error);
             showToast('Could not complete request: ' + error.message, 'error', 'Connection Error');
         } finally {
             singleSendBtn.disabled = false;

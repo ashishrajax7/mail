@@ -207,6 +207,35 @@ def restore_backup():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# --- Diagnostic Healthcheck API ---
+@app.route('/api/diagnose', methods=['GET'])
+def diagnose():
+    load_env()
+    report = {
+        'status': 'OK',
+        'env_keys_present': {
+            'AJIO_EMAIL': bool(os.getenv('AJIO_EMAIL')),
+            'AJIO_PASS_SET': bool(os.getenv('AJIO_PASS')),
+            'MYNTRA_EMAIL': bool(os.getenv('MYNTRA_EMAIL')),
+            'MYNTRA_PASS_SET': bool(os.getenv('MYNTRA_PASS')),
+            'FLIPKART_EMAIL': bool(os.getenv('FLIPKART_EMAIL')),
+            'SMTP_PORT': os.getenv('SMTP_PORT', '465'),
+            'SMTP_SERVICE': os.getenv('SMTP_SERVICE', 'smtp.gmail.com'),
+            'GOOGLE_SHEET_URL_SET': bool(os.getenv('GOOGLE_SHEET_URL')),
+            'GOOGLE_SHEET_WEBHOOK_SET': bool(os.getenv('GOOGLE_SHEET_WEBHOOK_URL'))
+        }
+    }
+    # Test SMTP port 465 connection
+    try:
+        s = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10)
+        s.quit()
+        report['smtp_port_465_reachable'] = True
+    except Exception as e:
+        report['smtp_port_465_reachable'] = False
+        report['smtp_port_465_error'] = str(e)
+    
+    return jsonify(report), 200
+
 # --- Send Email Endpoint ---
 @app.route('/send-email', methods=['POST'])
 def send_email():
@@ -217,18 +246,11 @@ def send_email():
         if not sender_config:
             return jsonify({'error': f'Invalid sender account "{sender_id}" selected.'}), 400
 
-        login_user = sender_config['login_user']
-        login_pass = sender_config['login_pass']
-        from_header = sender_config['from_header']
-        envelope_sender = sender_config['envelope_sender']
+        login_user = login_user.strip()
+        login_pass = login_pass.strip()
 
-        if not login_user or not login_pass:
-            return jsonify({
-                'error': f'Credentials for account "{sender_id}" are not configured in the .env file.'
-            }), 400
-
-        smtp_service = os.getenv('SMTP_SERVICE', 'smtp.gmail.com')
-        smtp_port = os.getenv('SMTP_PORT', '587')
+        smtp_service = os.getenv('SMTP_SERVICE', 'smtp.gmail.com').strip()
+        smtp_port = os.getenv('SMTP_PORT', '465').strip()
 
         recipient = request.form.get('to')
         cc = request.form.get('cc', '')
@@ -274,7 +296,7 @@ def send_email():
         try:
             port = int(smtp_port)
         except ValueError:
-            port = 587
+            port = 465
 
         to_list = [r.strip() for r in recipient.split(',') if r.strip()]
         cc_list = [r.strip() for r in cc.split(',') if r.strip()] if cc else []
@@ -282,29 +304,48 @@ def send_email():
         all_recipients = to_list + cc_list + bcc_list
 
         server = None
-        # Try primary port first, then fallback to SSL (465) if 587 fails
+        # Try connecting with fallback
+        auth_passwords_to_try = [login_pass]
+        if ' ' in login_pass:
+            auth_passwords_to_try.append(login_pass.replace(' ', ''))
+
+        def connect_and_login(p):
+            srv = None
+            if p == 465:
+                srv = smtplib.SMTP_SSL(smtp_service, 465, timeout=20)
+            else:
+                srv = smtplib.SMTP(smtp_service, p, timeout=20)
+                srv.ehlo()
+                srv.starttls()
+                srv.ehlo()
+            
+            # Try passwords
+            logged_in = False
+            last_auth_err = None
+            for pwd in auth_passwords_to_try:
+                try:
+                    srv.login(login_user, pwd)
+                    logged_in = True
+                    break
+                except smtplib.SMTPAuthenticationError as a_err:
+                    last_auth_err = a_err
+            
+            if not logged_in:
+                raise last_auth_err or Exception(f"Auth failed for {login_user}")
+            return srv
+
         try:
             print(f"Connecting to SMTP server {smtp_service}:{port}...")
-            if port == 465:
-                server = smtplib.SMTP_SSL(smtp_service, port, timeout=25)
-            else:
-                server = smtplib.SMTP(smtp_service, port, timeout=25)
-                server.ehlo()
-                print("Starting STARTTLS...")
-                server.starttls()
-                server.ehlo()
-            
-            print(f"Logging in as {login_user}...")
-            server.login(login_user, login_pass)
+            server = connect_and_login(port)
         except Exception as conn_err:
-            print(f"Primary connection on port {port} failed: {conn_err}. Trying SSL on port 465...")
+            alt_port = 465 if port != 465 else 587
+            print(f"Port {port} failed: {conn_err}. Trying alternate port {alt_port}...")
             try:
-                server = smtplib.SMTP_SSL(smtp_service, 465, timeout=25)
-                server.login(login_user, login_pass)
+                server = connect_and_login(alt_port)
             except Exception as fallback_err:
-                print(f"Fallback connection failed: {fallback_err}")
+                print(f"Both ports failed: {fallback_err}")
                 return jsonify({
-                    'error': f'Failed to connect/authenticate to SMTP ({smtp_service}): {str(fallback_err)}. Please verify app password in Environment Variables.'
+                    'error': f'SMTP Connection/Auth Error: {str(fallback_err)}. Check app password or Render environment variables.'
                 }), 500
 
         try:
@@ -315,12 +356,15 @@ def send_email():
                 server.sendmail(login_user, all_recipients, msg.as_string())
             
             print("Closing SMTP connection...")
-            server.quit()
+            try:
+                server.quit()
+            except Exception:
+                pass
             print("Email sent successfully!")
             return jsonify({'message': f'Email sent successfully from {from_header}!'}), 200
-        except smtplib.SMTPAuthenticationError:
+        except smtplib.SMTPAuthenticationError as auth_err:
             return jsonify({
-                'error': f'Authentication failed for {login_user}. Please check the app password in Render Environment Variables.'
+                'error': f'Authentication failed for {login_user}: {str(auth_err)}. Please check app password in Render.'
             }), 401
         except Exception as e:
             import traceback
