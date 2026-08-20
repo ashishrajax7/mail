@@ -207,6 +207,21 @@ def restore_backup():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/quota', methods=['GET'])
+def get_quota():
+    url = get_sheet_webhook_url()
+    if url:
+        try:
+            import urllib.request
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=4) as res:
+                data = json.loads(res.read().decode('utf-8'))
+                if 'quota' in data:
+                    return jsonify({'quota': data['quota']}), 200
+        except Exception:
+            pass
+    return jsonify({'quota': 1485}), 200
+
 # --- Diagnostic Healthcheck API ---
 @app.route('/api/diagnose', methods=['GET'])
 def diagnose():

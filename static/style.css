@@ -225,6 +225,63 @@ body {
     gap: 10px;
 }
 
+/* Daily Remaining Email Quota Badge */
+.quota-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.12));
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    user-select: none;
+}
+
+.quota-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: quotaPulse 2s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes quotaPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.quota-text {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.quota-num {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    color: #059669;
+    font-size: 12px;
+}
+
+[data-theme="dark"] .quota-num {
+    color: #34d399;
+}
+
 .btn-manage-link, .btn-send-nav {
     display: flex;
     align-items: center;
@@ -997,17 +1054,49 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all var(--transition-fast);
-    min-width: 160px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 175px;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-primary-send:hover {
+.btn-primary-send:hover:not(:disabled) {
     background: linear-gradient(135deg, #1d4ed8, #1e40af);
     box-shadow: 0 6px 20px var(--primary-glow);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
-.btn-primary-send:disabled {
+.btn-primary-send:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* 1. Sending State Animation */
+.btn-primary-send.is-sending {
+    background: linear-gradient(135deg, #1e40af, #2563eb, #3b82f6) !important;
+    background-size: 200% 200% !important;
+    animation: btnGradientMove 1.5s ease infinite, btnPulse 1.5s ease-in-out infinite alternate !important;
+    cursor: wait !important;
+    opacity: 0.95 !important;
+    box-shadow: 0 4px 18px rgba(37, 99, 235, 0.45) !important;
+}
+
+/* 2. Success State Animation (Green Pop) */
+.btn-primary-send.is-success {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5) !important;
+    animation: btnSuccessPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+    cursor: default !important;
+}
+
+/* 3. Error / Failed State Animation (Red Shake) */
+.btn-primary-send.is-failed {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+    box-shadow: 0 6px 22px rgba(239, 68, 68, 0.5) !important;
+    animation: btnShake 0.5s ease-in-out forwards !important;
+    cursor: pointer !important;
+}
+
+.btn-primary-send:disabled:not(.is-sending):not(.is-success):not(.is-failed) {
     background: var(--text-muted);
     cursor: not-allowed;
     box-shadow: none;
@@ -1018,19 +1107,46 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    transition: all 0.25s ease;
 }
 
 .btn-loader {
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
     border-radius: 50%;
     border-top-color: #ffffff;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.75s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
 }
 
+/* Button Keyframe Animations */
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+@keyframes btnGradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes btnPulse {
+    0% { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); }
+    100% { box-shadow: 0 6px 22px rgba(37, 99, 235, 0.65); }
+}
+
+@keyframes btnSuccessPop {
+    0% { transform: scale(0.92); }
+    50% { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+
+@keyframes btnShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
 }
 
 /* ==========================================================================

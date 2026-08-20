@@ -75,10 +75,18 @@ function doGet(e) {
     }
   }
   
+  var quota = 1500;
+  try {
+    quota = MailApp.getRemainingDailyQuota();
+  } catch (qErr) {
+    quota = 1500;
+  }
+
   var response = {
     status: 'success',
     emails: emails,
-    templates: templates
+    templates: templates,
+    quota: quota
   };
   
   return ContentService.createTextOutput(JSON.stringify(response))

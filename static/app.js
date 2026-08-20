@@ -487,6 +487,15 @@ document.addEventListener('DOMContentLoaded', () => {
             attachmentsCount: singleFiles.length
         });
 
+        // 1. Set Button to Animated Sending State
+        singleSendBtn.disabled = true;
+        singleSendBtn.classList.remove('is-success', 'is-failed');
+        singleSendBtn.classList.add('is-sending');
+        singleSendBtn.querySelector('.send-label').innerHTML = `
+            <span class="btn-loader"></span>
+            <span>Sending Email...</span>
+        `;
+
         try {
             const response = await fetch('/send-email', {
                 method: 'POST',
@@ -507,6 +516,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 console.log('Email dispatched successfully:', data);
                 showToast(data.message || 'Email sent successfully!', 'success', 'Dispatched');
+                updateQuotaDisplay(currentQuota - 1);
+                
+                // 2. Set Button to Green Success Animation
+                singleSendBtn.classList.remove('is-sending');
+                singleSendBtn.classList.add('is-success');
+                singleSendBtn.querySelector('.send-label').innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Sent Successfully! ✓</span>
+                `;
+
+                // Reset form fields
                 singleToInput.value = '';
                 singleCcInput.value = '';
                 singleBccInput.value = '';
@@ -516,17 +538,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderSingleFileList();
                 singleTemplateSelect.value = '';
                 document.querySelectorAll('#singleModeView .badge-count').forEach(b => b.style.display = 'none');
+
+                // Return back to original blue button after 2.5s
+                setTimeout(() => {
+                    singleSendBtn.classList.remove('is-success');
+                    singleSendBtn.disabled = false;
+                    singleSendBtn.querySelector('.send-label').innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                        <span>Send Email</span>
+                    `;
+                }, 2500);
+
             } else {
                 console.error('SMTP / Server dispatch error:', data);
                 showToast(data.error || 'Failed to send email.', 'error', 'SMTP / Server Error');
+                
+                // 3. Set Button to Red Error Animation
+                singleSendBtn.classList.remove('is-sending');
+                singleSendBtn.classList.add('is-failed');
+                singleSendBtn.querySelector('.send-label').innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    <span>Failed to Send ❌</span>
+                `;
+
+                // Return back to original blue button after 3s
+                setTimeout(() => {
+                    singleSendBtn.classList.remove('is-failed');
+                    singleSendBtn.disabled = false;
+                    singleSendBtn.querySelector('.send-label').innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                        <span>Send Email</span>
+                    `;
+                }, 3000);
             }
         } catch (error) {
             console.error('Fetch request failed:', error);
             showToast('Could not complete request: ' + error.message, 'error', 'Connection Error');
-        } finally {
-            singleSendBtn.disabled = false;
-            singleSendBtn.querySelector('.send-label').style.display = 'flex';
-            singleBtnLoader.style.display = 'none';
+            
+            // Set Button to Red Error Animation
+            singleSendBtn.classList.remove('is-sending');
+            singleSendBtn.classList.add('is-failed');
+            singleSendBtn.querySelector('.send-label').innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span>Error ❌</span>
+            `;
+
+            setTimeout(() => {
+                singleSendBtn.classList.remove('is-failed');
+                singleSendBtn.disabled = false;
+                singleSendBtn.querySelector('.send-label').innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span>Send Email</span>
+                `;
+            }, 3000);
         }
     });
 
@@ -745,9 +826,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Animated Sending State
         sendBatchBtn.disabled = true;
-        sendBatchBtn.querySelector('.send-label').style.display = 'none';
-        batchBtnLoader.style.display = 'inline-block';
+        sendBatchBtn.classList.remove('is-success', 'is-failed');
+        sendBatchBtn.classList.add('is-sending');
+        sendBatchBtn.querySelector('.send-label').innerHTML = `
+            <span class="btn-loader"></span>
+            <span>Dispatching Emails (1-by-1)...</span>
+        `;
 
         let successCount = 0;
         let failureCount = 0;
@@ -790,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     card.statusBadge.textContent = 'Sent ✓';
                     card.statusBadge.className = 'batch-card-status sent';
                     successCount++;
+                    updateQuotaDisplay(currentQuota - 1);
                 } else {
                     card.statusBadge.textContent = 'Failed ⚠️';
                     card.statusBadge.className = 'batch-card-status failed';
@@ -806,15 +893,55 @@ document.addEventListener('DOMContentLoaded', () => {
             await new Promise(r => setTimeout(r, 500));
         }
 
-        sendBatchBtn.disabled = false;
-        sendBatchBtn.querySelector('.send-label').style.display = 'flex';
-        batchBtnLoader.style.display = 'none';
-
         batchStatusSummary.textContent = `Batch finished: ${successCount} Sent, ${failureCount} Failed`;
+
         if (failureCount === 0) {
+            // All Success Animation (Green)
+            sendBatchBtn.classList.remove('is-sending');
+            sendBatchBtn.classList.add('is-success');
+            sendBatchBtn.querySelector('.send-label').innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>All Emails Dispatched! ✓</span>
+            `;
             showToast(`All ${successCount} emails dispatched successfully! 🎉`, 'success', 'Batch Complete');
+
+            setTimeout(() => {
+                sendBatchBtn.classList.remove('is-success');
+                sendBatchBtn.disabled = false;
+                sendBatchBtn.querySelector('.send-label').innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span>🚀 Dispatch All Emails (1-by-1)</span>
+                `;
+            }, 3000);
+
         } else {
-            showToast(`Batch completed with ${successCount} successful and ${failureCount} failed dispatches.`, 'warning', 'Batch Notice');
+            // Error / Partial Failure Animation (Red)
+            sendBatchBtn.classList.remove('is-sending');
+            sendBatchBtn.classList.add('is-failed');
+            sendBatchBtn.querySelector('.send-label').innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span>Batch Had Errors (${failureCount} Failed) ⚠️</span>
+            `;
+            showToast(`Batch completed with ${successCount} sent and ${failureCount} failed dispatches.`, 'warning', 'Batch Notice');
+
+            setTimeout(() => {
+                sendBatchBtn.classList.remove('is-failed');
+                sendBatchBtn.disabled = false;
+                sendBatchBtn.querySelector('.send-label').innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span>🚀 Dispatch All Emails (1-by-1)</span>
+                `;
+            }, 3500);
         }
     });
 
@@ -857,8 +984,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             updateBatchSummary();
+            fetchQuota();
         } catch (e) {
             console.error('Error loading initial data:', e);
+        }
+    }
+
+    // =========================================================================
+    // REMAINING DAILY EMAIL QUOTA TRACKER
+    // =========================================================================
+    let currentQuota = 1485;
+    const quotaCountEl = document.getElementById('quotaCount');
+
+    function updateQuotaDisplay(newQuota) {
+        if (typeof newQuota === 'number') {
+            currentQuota = Math.max(0, newQuota);
+        }
+        if (quotaCountEl) {
+            quotaCountEl.textContent = Number(currentQuota).toLocaleString();
+        }
+    }
+
+    async function fetchQuota() {
+        try {
+            const res = await fetch('/api/quota');
+            const data = await res.json();
+            if (data && typeof data.quota === 'number') {
+                updateQuotaDisplay(data.quota);
+            }
+        } catch (e) {
+            updateQuotaDisplay(1485);
         }
     }
 

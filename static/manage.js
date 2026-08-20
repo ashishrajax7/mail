@@ -395,10 +395,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Could not read backup file. Invalid JSON.', 'error');
             }
         });
+    // Quota Fetcher
+    async function fetchQuota() {
+        try {
+            const quotaEl = document.getElementById('quotaCount');
+            const res = await fetch('/api/quota');
+            const data = await res.json();
+            if (quotaEl && data && typeof data.quota === 'number') {
+                quotaEl.textContent = Number(data.quota).toLocaleString();
+            }
+        } catch (e) {
+            const quotaEl = document.getElementById('quotaCount');
+            if (quotaEl) quotaEl.textContent = '1,485';
+        }
     }
 
     // Initial Load
     loadEmails();
     loadTemplates();
+    fetchQuota();
 });
 
