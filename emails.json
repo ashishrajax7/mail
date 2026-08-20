@@ -1,0 +1,52 @@
+[
+  {
+    "id": "em_1",
+    "name": "Ajio Billing",
+    "email": "billing.ajio@brandcentral.in"
+  },
+  {
+    "id": "em_2",
+    "name": "Myntra Billing",
+    "email": "billing.myntra@brandcentral.in"
+  },
+  {
+    "id": "em_3",
+    "name": "Flipkart Billing",
+    "email": "billing.flipkart@brandcentral.in"
+  },
+  {
+    "id": "em_4",
+    "name": "Sales Invoice",
+    "email": "Sales.invoice@brandcentral.in"
+  },
+  {
+    "id": "em_5",
+    "name": "Payment",
+    "email": "payment@brandcentral.in"
+  },
+  {
+    "id": "em_6",
+    "name": "Anjali Singh",
+    "email": "anjali.singh@brandcentral.in"
+  },
+  {
+    "id": "em_7",
+    "name": "Jyoti Gupta",
+    "email": "jyoti.gupta@brandcentral.in"
+  },
+  {
+    "id": "em_8",
+    "name": "Sandip",
+    "email": "sandip@brandcentral.in"
+  },
+  {
+    "id": "em_9",
+    "name": "Account",
+    "email": "account@brandcentral.in"
+  },
+  {
+    "id": "em_10",
+    "name": "Divya Panchal",
+    "email": "divya.panchal@brandcentral.in"
+  }
+]

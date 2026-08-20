@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Directory & Templates - BrandCentral Mailer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tab Favicon -->
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="shortcut icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-layout manage-layout">
+        <!-- Top Navbar -->
+        <header class="top-navbar">
+            <div class="nav-brand">
+                <div class="brand-logo-badge">
+                    <img src="/static/logo.png" alt="Logo" class="brand-logo-img">
+                </div>
+                <div class="brand-titles">
+                    <span class="brand-title">Management <span class="highlight">Center</span></span>
+                    <span class="brand-subtitle">Configure Saved Mail IDs Pool & Universal Templates</span>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <button type="button" id="exportBackupBtn" class="btn-manage-link" title="Download all saved emails and templates as a JSON backup">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>📥 Export Backup</span>
+                </button>
+                <button type="button" id="importBackupBtn" class="btn-manage-link" title="Upload and restore a JSON backup">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>📤 Restore Backup</span>
+                </button>
+                <input type="file" id="backupFileInput" accept=".json" style="display: none;">
+                <a href="/" class="btn-send-nav">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Mailer
+                </a>
+                <button type="button" id="themeToggle" class="btn-icon" title="Toggle Theme">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Manage Tabs Header -->
+        <div class="manage-tabs-header">
+            <button type="button" class="tab-btn active" data-tab="emails-tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                Saved Mail IDs Directory (To / Cc / Bcc Pool)
+            </button>
+            <button type="button" class="tab-btn" data-tab="templates-tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Universal Templates (Subject & Body)
+            </button>
+        </div>
+
+        <!-- Tab 1: Saved Mail IDs Directory -->
+        <section id="emails-tab" class="tab-content active">
+            <div class="manage-grid">
+                <!-- Left: Saved Email IDs List -->
+                <div class="manage-list-panel">
+                    <div class="panel-header-row">
+                        <h3>Saved Mail IDs (<span id="emailCount">0</span>)</h3>
+                        <button type="button" id="addNewEmailBtn" class="btn-primary-sm">+ Add New Mail ID</button>
+                    </div>
+                    <div class="items-list" id="emailsList"></div>
+                </div>
+
+                <!-- Right: Email Editor Form -->
+                <div class="manage-form-panel">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <h3 id="emailFormTitle">Add Email Address</h3>
+                            <span class="badge-hint">Available in To, Cc, and Bcc</span>
+                        </div>
+                        <form id="emailEntryForm">
+                            <input type="hidden" id="em_id">
+                            
+                            <div class="form-group-custom">
+                                <label for="em_name">Name / Department Label *</label>
+                                <input type="text" id="em_name" class="input-custom" placeholder="e.g. Sales Invoice or Jyoti Gupta" required>
+                            </div>
+
+                            <div class="form-group-custom">
+                                <label for="em_address">Email Address *</label>
+                                <input type="email" id="em_address" class="input-custom" placeholder="e.g. Sales.invoice@brandcentral.in" required>
+                            </div>
+
+                            <div class="form-actions-row">
+                                <button type="button" id="cancelEmailBtn" class="btn-ghost-custom">Cancel</button>
+                                <button type="submit" id="saveEmailBtn" class="btn-primary-custom">💾 Save to Directory</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Universal Templates -->
+        <section id="templates-tab" class="tab-content">
+            <div class="manage-grid">
+                <!-- Left: Saved Templates List -->
+                <div class="manage-list-panel">
+                    <div class="panel-header-row">
+                        <h3>Universal Templates (<span id="templateCount">0</span>)</h3>
+                        <button type="button" id="addNewTemplateBtn" class="btn-primary-sm">+ New Template</button>
+                    </div>
+                    <div class="items-list" id="templatesList"></div>
+                </div>
+
+                <!-- Right: Template Editor Form -->
+                <div class="manage-form-panel">
+                    <div class="form-card">
+                        <div class="form-card-header">
+                            <h3 id="templateFormTitle">Create Universal Template</h3>
+                            <span class="badge-hint">Can be sent from any account</span>
+                        </div>
+                        <form id="templateForm">
+                            <input type="hidden" id="tpl_id">
+                            
+                            <div class="form-group-custom">
+                                <label for="tpl_name">Template Name / Title *</label>
+                                <input type="text" id="tpl_name" class="input-custom" placeholder="e.g. Tax Invoice & Dispatch" required>
+                            </div>
+
+                            <div class="form-group-custom">
+                                <label for="tpl_subject">Subject Line *</label>
+                                <input type="text" id="tpl_subject" class="input-custom" placeholder="e.g. Tax Invoice & Billing Summary" required>
+                            </div>
+
+                            <div class="form-group-custom">
+                                <label for="tpl_body">Email Body *</label>
+                                <textarea id="tpl_body" class="textarea-custom" rows="10" placeholder="Write universal message body for this template..." required></textarea>
+                            </div>
+
+                            <div class="form-actions-row">
+                                <button type="button" id="cancelTemplateBtn" class="btn-ghost-custom">Cancel</button>
+                                <button type="submit" id="saveTemplateBtn" class="btn-primary-custom">💾 Save Template</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="/static/manage.js"></script>
+</body>
+</html>

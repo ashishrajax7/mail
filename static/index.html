@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrandCentral Mailer - Multi-Account Dispatcher</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tab Favicon -->
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="shortcut icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Top Navigation Bar -->
+        <header class="top-navbar">
+            <div class="nav-brand">
+                <div class="brand-logo-badge">
+                    <img src="/static/logo.png" alt="Logo" class="brand-logo-img">
+                </div>
+                <div class="brand-titles">
+                    <span class="brand-title">BrandCentral <span class="highlight">Mailer</span></span>
+                    <span class="brand-subtitle">Multi-Account Dispatch & Template Engine</span>
+                </div>
+            </div>
+
+            <!-- Mode Switcher: Single vs Multi-Account Batch -->
+            <div class="mode-switcher-group">
+                <button type="button" class="mode-switch-btn active" id="btnModeSingle" data-mode="single">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    <span>Single Dispatch</span>
+                </button>
+                <button type="button" class="mode-switch-btn" id="btnModeBatch" data-mode="batch">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span>⚡ Multi-Account Batch (3-in-1)</span>
+                </button>
+            </div>
+
+            <div class="nav-actions">
+                <a href="/manage" class="btn-manage-link" title="Manage Saved Mail IDs and Templates">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>Manage IDs & Templates</span>
+                </a>
+                <button type="button" id="themeToggle" class="btn-icon" title="Toggle Theme">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- ================================================================
+             VIEW 1: SINGLE DISPATCH MODE (Default)
+             ================================================================ -->
+        <main class="composer-main-layout" id="singleModeView">
+            <form id="emailForm" class="master-composer-card" enctype="multipart/form-data">
+                <input type="hidden" name="sender_id" id="sender_id" value="ajio">
+
+                <!-- Header Bar of Composer -->
+                <div class="composer-top-banner">
+                    <!-- Sender Accounts Selector Group -->
+                    <div class="sender-nav-selector">
+                        <span class="sender-nav-label">Sender Account:</span>
+                        <div class="sender-pills-group">
+                            <button type="button" class="sender-pill-btn active" data-sender="ajio" id="pill-ajio">
+                                <span class="pill-badge ajio">AJIO</span>
+                                <span class="pill-text">billing.ajio@brandcentral.in</span>
+                            </button>
+                            <button type="button" class="sender-pill-btn" data-sender="myntra" id="pill-myntra">
+                                <span class="pill-badge myntra">MYNTRA</span>
+                                <span class="pill-text">billing.myntra@brandcentral.in</span>
+                            </button>
+                            <button type="button" class="sender-pill-btn" data-sender="flipkart" id="pill-flipkart">
+                                <span class="pill-badge flipkart">FLIPKART</span>
+                                <span class="pill-text">billing.flipkart@brandcentral.in</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Universal Template Dropdown -->
+                    <div class="preset-box">
+                        <label for="templateSelect">📝 Universal Template:</label>
+                        <select id="templateSelect" class="preset-select">
+                            <option value="">-- Choose Template (Auto-fills Subject & Body) --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SECTION 1: SIDE-BY-SIDE RECIPIENTS (TO, CC, BCC) -->
+                <div class="recipients-grid">
+                    <!-- Column 1: TO -->
+                    <div class="grid-field">
+                        <div class="grid-label-row">
+                            <label for="to" class="grid-label">1. Recipient (To) *</label>
+                            <div class="multiselect-wrapper" data-target-input="to">
+                                <button type="button" class="multiselect-btn">
+                                    <span>☑️ Select IDs</span>
+                                    <span class="badge-count" style="display: none;">0</span>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </button>
+                                <div class="multiselect-dropdown">
+                                    <div class="popover-top">
+                                        <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                    </div>
+                                    <div class="popover-actions">
+                                        <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                        <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                    </div>
+                                    <div class="checkbox-list"></div>
+                                    <div class="popover-bottom">
+                                        <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="to" 
+                            name="to" 
+                            class="grid-input" 
+                            placeholder="Tick above to select multiple or type email" 
+                            required
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <!-- Column 2: CC -->
+                    <div class="grid-field">
+                        <div class="grid-label-row">
+                            <label for="cc" class="grid-label">2. Carbon Copy (Cc)</label>
+                            <div class="multiselect-wrapper" data-target-input="cc">
+                                <button type="button" class="multiselect-btn">
+                                    <span>☑️ Select IDs</span>
+                                    <span class="badge-count" style="display: none;">0</span>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </button>
+                                <div class="multiselect-dropdown">
+                                    <div class="popover-top">
+                                        <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                    </div>
+                                    <div class="popover-actions">
+                                        <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                        <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                    </div>
+                                    <div class="checkbox-list"></div>
+                                    <div class="popover-bottom">
+                                        <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="cc" 
+                            name="cc" 
+                            class="grid-input" 
+                            placeholder="Tick above to add multiple IDs to CC"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <!-- Column 3: BCC -->
+                    <div class="grid-field">
+                        <div class="grid-label-row">
+                            <label for="bcc" class="grid-label">3. Blind Copy (Bcc)</label>
+                            <div class="multiselect-wrapper" data-target-input="bcc">
+                                <button type="button" class="multiselect-btn">
+                                    <span>☑️ Select IDs</span>
+                                    <span class="badge-count" style="display: none;">0</span>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </button>
+                                <div class="multiselect-dropdown">
+                                    <div class="popover-top">
+                                        <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                    </div>
+                                    <div class="popover-actions">
+                                        <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                        <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                    </div>
+                                    <div class="checkbox-list"></div>
+                                    <div class="popover-bottom">
+                                        <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="bcc" 
+                            name="bcc" 
+                            class="grid-input" 
+                            placeholder="Tick above to add multiple IDs to BCC"
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+
+                <!-- Quick Email Chips Bar -->
+                <div class="quick-chips-bar">
+                    <span class="chips-label">Quick 1-Click to CC:</span>
+                    <div class="chips-scroll" id="quickChipsContainer"></div>
+                </div>
+
+                <!-- SECTION 2: SUBJECT -->
+                <div class="subject-section">
+                    <div class="grid-field full-width">
+                        <div class="subject-label-row">
+                            <label for="subject" class="grid-label">4. Subject Line</label>
+                            <span class="subject-connected-hint">⚡ Connected with Body templates</span>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="subject" 
+                            name="subject" 
+                            class="grid-input subject-styled-input" 
+                            placeholder="Email subject line (Auto-filled by template or type custom)..."
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+
+                <!-- SECTION 3: BODY & ATTACHMENTS SIDE-BY-SIDE -->
+                <div class="content-attachments-grid">
+                    <!-- Left: Message Body -->
+                    <div class="body-column">
+                        <div class="column-header">
+                            <label for="body" class="grid-label">5. Message Body</label>
+                            <div class="body-toolbar">
+                                <button type="button" class="tool-btn" data-tool="greeting" title="Insert Greeting">👋 Greeting</button>
+                                <button type="button" class="tool-btn" data-tool="signature" title="Insert Brand Signature">✍️ Signature</button>
+                                <button type="button" class="tool-btn" data-tool="bullet" title="Add Bullet">• Bullet</button>
+                                <button type="button" class="tool-btn tool-clear" data-tool="clear" title="Clear Body">🗑️ Clear</button>
+                            </div>
+                        </div>
+                        <textarea 
+                            id="body" 
+                            name="body" 
+                            class="body-textarea" 
+                            rows="12" 
+                            placeholder="Select a universal template above or compose your email content here..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Right: Attachments -->
+                    <div class="attachments-column">
+                        <div class="column-header">
+                            <label class="grid-label">6. Attachments</label>
+                            <span class="file-count-badge" id="fileCountBadge">0 files</span>
+                        </div>
+
+                        <div class="drop-zone-compact" id="dropZone">
+                            <div class="compact-drop-content">
+                                <div class="drop-icon">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                    </svg>
+                                </div>
+                                <div class="drop-text-box">
+                                    <span class="main-drop-text">Drag & drop files or <button type="button" class="browse-action" id="browseBtn">Browse</button></span>
+                                    <span class="sub-drop-text">PDF, Excel, Word, CSV, Images</span>
+                                </div>
+                            </div>
+                            <input 
+                                type="file" 
+                                id="fileInput" 
+                                name="attachments" 
+                                multiple 
+                                style="display: none;"
+                            >
+                        </div>
+
+                        <div class="compact-files-list" id="fileList"></div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: FOOTER ACTION BAR -->
+                <div class="composer-action-bar">
+                    <div class="action-bar-left">
+                        <span class="hint-tag"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to Send</span>
+                        <button type="button" id="resetBtn" class="btn-clear-draft">Clear Form</button>
+                    </div>
+
+                    <div class="action-bar-right">
+                        <button type="submit" id="sendBtn" class="btn-primary-send">
+                            <span class="send-label">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                                <span>Send Email</span>
+                            </span>
+                            <span class="btn-loader" id="btnLoader" style="display: none;"></span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </main>
+
+        <!-- ================================================================
+             VIEW 2: MULTI-ACCOUNT BATCH (3-in-1) MODE
+             ================================================================ -->
+        <main class="batch-main-layout" id="multiModeView" style="display: none;">
+            <div class="batch-header-banner">
+                <div class="batch-banner-left">
+                    <h2>⚡ Multi-Account Batch Dispatcher</h2>
+                    <p>Har brand card me <strong>apna alag Template</strong>, <strong>☑️ Multi-Select Checkboxes se Recipients</strong> aur attachments set karein!</p>
+                </div>
+            </div>
+
+            <!-- Batch 3-Card Grid -->
+            <div class="batch-cards-container">
+                <!-- CARD 1: AJIO -->
+                <div class="batch-brand-card" id="batchCardAjio">
+                    <div class="batch-card-top ajio-header">
+                        <div class="card-brand-tag">
+                            <span class="brand-pill ajio">AJIO</span>
+                            <span class="brand-email-label">billing.ajio@brandcentral.in</span>
+                        </div>
+                        <div class="card-toggle-group">
+                            <div class="card-tpl-picker">
+                                <label for="batchTplAjio">📝 Ajio Template:</label>
+                                <select id="batchTplAjio" class="batch-card-template-select" data-brand="ajio">
+                                    <option value="">-- Choose Ajio Template --</option>
+                                </select>
+                            </div>
+                            <label class="toggle-checkbox-label">
+                                <input type="checkbox" id="enableAjioBatch" checked>
+                                <span>Include in Batch</span>
+                            </label>
+                            <span class="batch-card-status ready" id="statusAjio">Ready</span>
+                        </div>
+                    </div>
+
+                    <div class="batch-card-body">
+                        <!-- Recipients Row with Multi-Select Checkboxes -->
+                        <div class="batch-field-group">
+                            <!-- To -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">To *</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchToAjio">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchToAjio" class="grid-input" placeholder="Tick above to add multiple recipients" required>
+                            </div>
+
+                            <!-- Cc -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Cc</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchCcAjio">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchCcAjio" class="grid-input" placeholder="Tick above to add CC">
+                            </div>
+
+                            <!-- Bcc -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Bcc</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchBccAjio">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchBccAjio" class="grid-input" placeholder="Tick above to add BCC">
+                            </div>
+                        </div>
+
+                        <!-- Subject Row -->
+                        <div class="batch-field">
+                            <label class="grid-label">Ajio Subject</label>
+                            <input type="text" id="batchSubAjio" class="grid-input" placeholder="Ajio email subject line...">
+                        </div>
+
+                        <!-- Body & Attachments Split Row -->
+                        <div class="batch-body-attach-grid">
+                            <div class="batch-field">
+                                <label class="grid-label">Ajio Message Body</label>
+                                <textarea id="batchBodyAjio" class="body-textarea" rows="6" placeholder="Message content for Ajio..."></textarea>
+                            </div>
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Ajio Attachments</label>
+                                    <span class="batch-file-count" id="countAjioBadge">0 files</span>
+                                </div>
+                                <div class="batch-dropzone" id="dropZoneAjio">
+                                    <span>📎 Drag Ajio files or <button type="button" class="browse-action" id="browseBtnAjio">Browse</button></span>
+                                    <input type="file" id="fileInputAjio" multiple style="display: none;">
+                                </div>
+                                <div class="batch-file-list" id="fileListAjio"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 2: MYNTRA -->
+                <div class="batch-brand-card" id="batchCardMyntra">
+                    <div class="batch-card-top myntra-header">
+                        <div class="card-brand-tag">
+                            <span class="brand-pill myntra">MYNTRA</span>
+                            <span class="brand-email-label">billing.myntra@brandcentral.in</span>
+                        </div>
+                        <div class="card-toggle-group">
+                            <div class="card-tpl-picker">
+                                <label for="batchTplMyntra">📝 Myntra Template:</label>
+                                <select id="batchTplMyntra" class="batch-card-template-select" data-brand="myntra">
+                                    <option value="">-- Choose Myntra Template --</option>
+                                </select>
+                            </div>
+                            <label class="toggle-checkbox-label">
+                                <input type="checkbox" id="enableMyntraBatch" checked>
+                                <span>Include in Batch</span>
+                            </label>
+                            <span class="batch-card-status ready" id="statusMyntra">Ready</span>
+                        </div>
+                    </div>
+
+                    <div class="batch-card-body">
+                        <!-- Recipients Row with Multi-Select Checkboxes -->
+                        <div class="batch-field-group">
+                            <!-- To -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">To *</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchToMyntra">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchToMyntra" class="grid-input" placeholder="Tick above to add multiple recipients" required>
+                            </div>
+
+                            <!-- Cc -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Cc</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchCcMyntra">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchCcMyntra" class="grid-input" placeholder="Tick above to add CC">
+                            </div>
+
+                            <!-- Bcc -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Bcc</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchBccMyntra">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchBccMyntra" class="grid-input" placeholder="Tick above to add BCC">
+                            </div>
+                        </div>
+
+                        <!-- Subject Row -->
+                        <div class="batch-field">
+                            <label class="grid-label">Myntra Subject</label>
+                            <input type="text" id="batchSubMyntra" class="grid-input" placeholder="Myntra email subject line...">
+                        </div>
+
+                        <!-- Body & Attachments Split Row -->
+                        <div class="batch-body-attach-grid">
+                            <div class="batch-field">
+                                <label class="grid-label">Myntra Message Body</label>
+                                <textarea id="batchBodyMyntra" class="body-textarea" rows="6" placeholder="Message content for Myntra..."></textarea>
+                            </div>
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Myntra Attachments</label>
+                                    <span class="batch-file-count" id="countMyntraBadge">0 files</span>
+                                </div>
+                                <div class="drop-zone-compact" id="dropZoneMyntra" style="padding: 12px;">
+                                    <span>📎 Drag Myntra files or <button type="button" class="browse-action" id="browseBtnMyntra">Browse</button></span>
+                                    <input type="file" id="fileInputMyntra" multiple style="display: none;">
+                                </div>
+                                <div class="batch-file-list" id="fileListMyntra"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 3: FLIPKART -->
+                <div class="batch-brand-card" id="batchCardFlipkart">
+                    <div class="batch-card-top flipkart-header">
+                        <div class="card-brand-tag">
+                            <span class="brand-pill flipkart">FLIPKART</span>
+                            <span class="brand-email-label">billing.flipkart@brandcentral.in</span>
+                        </div>
+                        <div class="card-toggle-group">
+                            <div class="card-tpl-picker">
+                                <label for="batchTplFlipkart">📝 Flipkart Template:</label>
+                                <select id="batchTplFlipkart" class="batch-card-template-select" data-brand="flipkart">
+                                    <option value="">-- Choose Flipkart Template --</option>
+                                </select>
+                            </div>
+                            <label class="toggle-checkbox-label">
+                                <input type="checkbox" id="enableFlipkartBatch" checked>
+                                <span>Include in Batch</span>
+                            </label>
+                            <span class="batch-card-status ready" id="statusFlipkart">Ready</span>
+                        </div>
+                    </div>
+
+                    <div class="batch-card-body">
+                        <!-- Recipients Row with Multi-Select Checkboxes -->
+                        <div class="batch-field-group">
+                            <!-- To -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">To *</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchToFlipkart">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchToFlipkart" class="grid-input" placeholder="Tick above to add multiple recipients" required>
+                            </div>
+
+                            <!-- Cc -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Cc</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchCcFlipkart">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchCcFlipkart" class="grid-input" placeholder="Tick above to add CC">
+                            </div>
+
+                            <!-- Bcc -->
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Bcc</label>
+                                    <div class="multiselect-wrapper" data-target-input="batchBccFlipkart">
+                                        <button type="button" class="multiselect-btn">
+                                            <span>☑️ Select IDs</span>
+                                            <span class="badge-count" style="display: none;">0</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div class="multiselect-dropdown">
+                                            <div class="popover-top">
+                                                <input type="text" class="popover-search-input" placeholder="🔍 Search emails...">
+                                            </div>
+                                            <div class="popover-actions">
+                                                <button type="button" class="action-link-btn btn-select-all">Select All</button>
+                                                <button type="button" class="action-link-btn btn-clear-all">Clear All</button>
+                                            </div>
+                                            <div class="checkbox-list"></div>
+                                            <div class="popover-bottom">
+                                                <button type="button" class="btn-popover-apply">Apply & Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="text" id="batchBccFlipkart" class="grid-input" placeholder="Tick above to add BCC">
+                            </div>
+                        </div>
+
+                        <!-- Subject Row -->
+                        <div class="batch-field">
+                            <label class="grid-label">Flipkart Subject</label>
+                            <input type="text" id="batchSubFlipkart" class="grid-input" placeholder="Flipkart email subject line...">
+                        </div>
+
+                        <!-- Body & Attachments Split Row -->
+                        <div class="batch-body-attach-grid">
+                            <div class="batch-field">
+                                <label class="grid-label">Flipkart Message Body</label>
+                                <textarea id="batchBodyFlipkart" class="body-textarea" rows="6" placeholder="Message content for Flipkart..."></textarea>
+                            </div>
+                            <div class="batch-field">
+                                <div class="grid-label-row">
+                                    <label class="grid-label">Flipkart Attachments</label>
+                                    <span class="batch-file-count" id="countFlipkartBadge">0 files</span>
+                                </div>
+                                <div class="drop-zone-compact" id="dropZoneFlipkart" style="padding: 12px;">
+                                    <span>📎 Drag Flipkart files or <button type="button" class="browse-action" id="browseBtnFlipkart">Browse</button></span>
+                                    <input type="file" id="fileInputFlipkart" multiple style="display: none;">
+                                </div>
+                                <div class="batch-file-list" id="fileListFlipkart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Batch Action Bar -->
+            <div class="batch-action-bar">
+                <div class="batch-action-left">
+                    <button type="button" id="resetBatchBtn" class="btn-clear-draft">Clear All 3 Forms</button>
+                    <span class="batch-status-msg" id="batchStatusSummary">3 Emails ready for dispatch</span>
+                </div>
+                <div class="batch-action-right">
+                    <button type="button" id="sendBatchBtn" class="btn-primary-send batch-launch-btn">
+                        <span class="send-label">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                            <span>🚀 Dispatch All Emails (1-by-1)</span>
+                        </span>
+                        <span class="btn-loader" id="batchBtnLoader" style="display: none;"></span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

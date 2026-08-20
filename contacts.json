@@ -1,0 +1,23 @@
+[
+  {
+    "id": "cnt_1",
+    "name": "Ajio Billing Team",
+    "to": "billing@ajio.com",
+    "cc": "accounts@brandcentral.in",
+    "bcc": ""
+  },
+  {
+    "id": "cnt_2",
+    "name": "Myntra Billing Team",
+    "to": "billing@myntra.com",
+    "cc": "accounts@brandcentral.in",
+    "bcc": ""
+  },
+  {
+    "id": "cnt_3",
+    "name": "Flipkart Billing Team",
+    "to": "billing@flipkart.com",
+    "cc": "accounts@brandcentral.in",
+    "bcc": ""
+  }
+]

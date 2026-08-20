@@ -1,0 +1,26 @@
+[
+  {
+    "id": "tpl_1",
+    "name": "Tax Invoice & Dispatch",
+    "subject": "Tax Invoice & Dispatch Details",
+    "body": "Dear Team,\n\nPlease find attached the tax invoice and dispatch statement for today's billing.\n\nSummary Details:\n• Invoice Attached: Yes\n• Dispatch Date: Today\n\nKindly review and acknowledge receipt.\n\nWarm regards,\nBilling & Accounts Department"
+  },
+  {
+    "id": "tpl_2",
+    "name": "Monthly Billing Statement",
+    "subject": "Monthly Reconciliation & Billing Statement",
+    "body": "Dear Finance Team,\n\nPlease find attached the monthly consolidated billing statement for your reconciliation.\n\nFeel free to reach out in case of any discrepancies.\n\nBest regards,\nAccounts Team"
+  },
+  {
+    "id": "tpl_3",
+    "name": "Payment Receipt Acknowledgment",
+    "subject": "Payment Confirmation & Official Receipt",
+    "body": "Dear Sir/Madam,\n\nWe have successfully received your payment. The official payment receipt document is attached herewith for your reference.\n\nThank you for your prompt settlement!\n\nWarm regards,\nFinance & Accounts"
+  },
+  {
+    "id": "tpl_1787210692251",
+    "name": "DF-Invoice Query-AJIO",
+    "subject": "Request for Resolution of DF-Invoice Query-AJIO",
+    "body": "Hello Team,\n\nI hope this message finds you well.\n\nWe have encountered a query related to the invoices in the attached Excel file. I kindly request that you review the file in detail and address the issue as soon as possible. Once the query for each party is resolved, please highlight the relevant rows in the Excel file for easy reference.\n\nYour prompt attention to this matter is highly appreciated. Kindly inform me once the issue has been resolved, and feel free to reach out if any further clarification or information is needed.\n\nThank you for your cooperation, and I look forward to your prompt response.\n\nWarm regards\n\nASHISH MAHAPATRA"
+  }
+]
