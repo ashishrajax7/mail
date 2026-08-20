@@ -232,8 +232,21 @@
                 <div class="subject-section">
                     <div class="grid-field full-width">
                         <div class="subject-label-row">
-                            <label for="subject" class="grid-label">4. Subject Line</label>
-                            <span class="subject-connected-hint">⚡ Connected with Body templates</span>
+                            <div class="subject-label-left">
+                                <label for="subject" class="grid-label">4. Subject Line</label>
+                                <span class="subject-connected-hint">⚡ Connected with Body templates</span>
+                            </div>
+                            <div class="subject-quick-tools">
+                                <button type="button" class="btn-tag-pill" data-tag-target="subject" data-tag-type="datetime" title="Append current date & time (dd-mm-yyyy hh:mm:ss)">
+                                    📅 + Date & Time
+                                </button>
+                                <button type="button" class="btn-tag-pill" data-tag-target="subject" data-tag-type="refid" title="Append unique reference ID like [Ref: #8492]">
+                                    🏷️ + Unique Ref ID
+                                </button>
+                                <button type="button" class="btn-tag-pill btn-tag-clear" data-tag-target="subject" data-tag-type="clear" title="Remove tag from subject">
+                                    ✖ Clear
+                                </button>
+                            </div>
                         </div>
                         <input 
                             type="text" 
@@ -448,7 +461,20 @@
 
                         <!-- Subject Row -->
                         <div class="batch-field">
-                            <label class="grid-label">Ajio Subject</label>
+                            <div class="grid-label-row">
+                                <label class="grid-label">Ajio Subject</label>
+                                <div class="subject-quick-tools">
+                                    <button type="button" class="btn-tag-pill" data-tag-target="batchSubAjio" data-tag-type="datetime" title="Append Date & Time">
+                                        📅 + Date & Time
+                                    </button>
+                                    <button type="button" class="btn-tag-pill" data-tag-target="batchSubAjio" data-tag-type="refid" title="Append Unique Ref ID">
+                                        🏷️ + Ref ID
+                                    </button>
+                                    <button type="button" class="btn-tag-pill btn-tag-clear" data-tag-target="batchSubAjio" data-tag-type="clear" title="Clear Tag">
+                                        ✖
+                                    </button>
+                                </div>
+                            </div>
                             <input type="text" id="batchSubAjio" class="grid-input" placeholder="Ajio email subject line...">
                         </div>
 
@@ -585,7 +611,20 @@
 
                         <!-- Subject Row -->
                         <div class="batch-field">
-                            <label class="grid-label">Myntra Subject</label>
+                            <div class="grid-label-row">
+                                <label class="grid-label">Myntra Subject</label>
+                                <div class="subject-quick-tools">
+                                    <button type="button" class="btn-tag-pill" data-tag-target="batchSubMyntra" data-tag-type="datetime" title="Append Date & Time">
+                                        📅 + Date & Time
+                                    </button>
+                                    <button type="button" class="btn-tag-pill" data-tag-target="batchSubMyntra" data-tag-type="refid" title="Append Unique Ref ID">
+                                        🏷️ + Ref ID
+                                    </button>
+                                    <button type="button" class="btn-tag-pill btn-tag-clear" data-tag-target="batchSubMyntra" data-tag-type="clear" title="Clear Tag">
+                                        ✖
+                                    </button>
+                                </div>
+                            </div>
                             <input type="text" id="batchSubMyntra" class="grid-input" placeholder="Myntra email subject line...">
                         </div>
 
@@ -722,7 +761,20 @@
 
                         <!-- Subject Row -->
                         <div class="batch-field">
-                            <label class="grid-label">Flipkart Subject</label>
+                            <div class="grid-label-row">
+                                <label class="grid-label">Flipkart Subject</label>
+                                <div class="subject-quick-tools">
+                                    <button type="button" class="btn-tag-pill" data-tag-target="batchSubFlipkart" data-tag-type="datetime" title="Append Date & Time">
+                                        📅 + Date & Time
+                                    </button>
+                                    <button type="button" class="btn-tag-pill" data-tag-target="batchSubFlipkart" data-tag-type="refid" title="Append Unique Ref ID">
+                                        🏷️ + Ref ID
+                                    </button>
+                                    <button type="button" class="btn-tag-pill btn-tag-clear" data-tag-target="batchSubFlipkart" data-tag-type="clear" title="Clear Tag">
+                                        ✖
+                                    </button>
+                                </div>
+                            </div>
                             <input type="text" id="batchSubFlipkart" class="grid-input" placeholder="Flipkart email subject line...">
                         </div>
 

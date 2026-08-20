@@ -1017,5 +1017,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // =========================================================================
+    // SUBJECT TAG TOOLS: DATE/TIME & UNIQUE REF ID
+    // =========================================================================
+    function formatCurrentDateTime() {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        return `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss}`;
+    }
+
+    function generateRefId() {
+        const num = Math.floor(1000 + Math.random() * 9000);
+        return `[Ref: #${num}]`;
+    }
+
+    function cleanSubjectTag(val) {
+        if (!val) return '';
+        return val
+            .replace(/\s*\[\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}:\d{2}\]/g, '')
+            .replace(/\s*\[Ref:\s*#?\w+\]/g, '')
+            .trim();
+    }
+
+    document.querySelectorAll('.btn-tag-pill').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.getAttribute('data-tag-target');
+            const tagType = btn.getAttribute('data-tag-type');
+            const targetInput = document.getElementById(targetId);
+
+            if (!targetInput) return;
+
+            const baseVal = cleanSubjectTag(targetInput.value);
+
+            if (tagType === 'datetime') {
+                const dt = formatCurrentDateTime();
+                targetInput.value = baseVal ? `${baseVal} [${dt}]` : `[${dt}]`;
+                showToast(`Appended Date & Time: [${dt}]`, 'info', 'Subject Tag');
+            } else if (tagType === 'refid') {
+                const ref = generateRefId();
+                targetInput.value = baseVal ? `${baseVal} ${ref}` : ref;
+                showToast(`Appended Unique ID: ${ref}`, 'info', 'Subject Tag');
+            } else if (tagType === 'clear') {
+                targetInput.value = baseVal;
+                showToast('Removed tags from Subject line.', 'info', 'Tag Cleared');
+            }
+
+            targetInput.dispatchEvent(new Event('input'));
+        });
+    });
+
     loadAllData();
 });

@@ -767,6 +767,57 @@ body {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.subject-label-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.subject-quick-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-tag-pill {
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+}
+
+.btn-tag-pill:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.btn-tag-pill.btn-tag-clear {
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.3);
+    background: var(--danger-bg);
+    padding: 3px 7px;
+}
+
+.btn-tag-pill.btn-tag-clear:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
 }
 
 .subject-connected-hint {
