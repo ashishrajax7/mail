@@ -28,7 +28,8 @@ def load_env():
 
 load_env()
 
-from email.utils import formataddr
+import uuid
+from email.utils import formataddr, formatdate, make_msgid
 
 def get_sender_config(sender_id):
     load_env()
@@ -347,6 +348,9 @@ def send_email():
                 if cc:
                     msg['Cc'] = cc
                 msg['Subject'] = subject
+                msg['Date'] = formatdate(localtime=True)
+                msg['Message-ID'] = make_msgid(domain='brandcentral.in')
+                msg['X-Entity-Ref-ID'] = str(uuid.uuid4())
                 msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
                 for file in attachments:

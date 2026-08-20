@@ -161,7 +161,11 @@ function doPost(e) {
       var fromName = payload.from_name || 'BrandCentral Mailer';
       
       var options = {
-        name: fromName
+        name: fromName,
+        headers: {
+          'X-Entity-Ref-ID': Utilities.getUuid(),
+          'Message-ID': '<' + Utilities.getUuid() + '@brandcentral.in>'
+        }
       };
       if (payload.cc) options.cc = payload.cc;
       if (payload.bcc) options.bcc = payload.bcc;
