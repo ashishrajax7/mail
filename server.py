@@ -400,6 +400,12 @@ def send_email():
             return jsonify({
                 'error': f'Failed to dispatch email. SMTP Error: {smtp_error_msg} | Webhook Error: {hook_msg}'
             }), 500
+    except Exception as general_err:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': f'Server error: {str(general_err)}'
+        }), 500
 
 @app.errorhandler(500)
 def internal_server_error(e):
