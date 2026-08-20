@@ -252,12 +252,20 @@ def diagnose():
     
     return jsonify(report), 200
 
+def get_webhook_url_for_sender(sender_id):
+    load_env()
+    if sender_id == 'ajio':
+        return os.getenv('AJIO_WEBHOOK_URL', os.getenv('GOOGLE_SHEET_WEBHOOK_URL', '')).strip()
+    else:
+        # Myntra and Flipkart share the Myntra Google Workspace login
+        return os.getenv('MYNTRA_WEBHOOK_URL', os.getenv('GOOGLE_SHEET_WEBHOOK_URL', '')).strip()
+
 import base64
 
-def send_via_google_webhook(from_name, to, cc, bcc, subject, body, attachments_files):
-    url = get_sheet_webhook_url()
+def send_via_google_webhook(sender_id, from_name, from_email, to, cc, bcc, subject, body, attachments_files):
+    url = get_webhook_url_for_sender(sender_id)
     if not url:
-        return False, "Google Sheet Webhook URL is not configured."
+        return False, f"Google Webhook URL for '{sender_id}' is not configured."
     try:
         encoded_attachments = []
         for file in attachments_files:
@@ -274,6 +282,7 @@ def send_via_google_webhook(from_name, to, cc, bcc, subject, body, attachments_f
         payload = {
             'type': 'send_email',
             'from_name': from_name,
+            'from_email': from_email,
             'to': to,
             'cc': cc,
             'bcc': bcc,
@@ -412,7 +421,9 @@ def send_email():
         if sender_id == 'flipkart':
             from_name = "Billing.Flipkart"
 
-        hook_ok, hook_msg = send_via_google_webhook(from_name, recipient, cc, bcc, subject, body, attachments)
+        from_email = envelope_sender or login_user or f"billing.{sender_id}@brandcentral.in"
+
+        hook_ok, hook_msg = send_via_google_webhook(sender_id, from_name, from_email, recipient, cc, bcc, subject, body, attachments)
         if hook_ok:
             return jsonify({'message': f'Email sent successfully from {from_header} (via Google Engine)!'}), 200
         else:

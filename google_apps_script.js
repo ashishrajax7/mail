@@ -159,6 +159,7 @@ function doPost(e) {
       var subject = payload.subject || '(No Subject)';
       var body = payload.body || '';
       var fromName = payload.from_name || 'BrandCentral Mailer';
+      var fromEmail = payload.from_email || '';
       
       var options = {
         name: fromName,
@@ -169,6 +170,11 @@ function doPost(e) {
       };
       if (payload.cc) options.cc = payload.cc;
       if (payload.bcc) options.bcc = payload.bcc;
+      
+      // Set specific Sender Account (Ajio / Myntra / Flipkart)
+      if (fromEmail) {
+        options.from = fromEmail;
+      }
       
       // Attachments support
       if (payload.attachments && payload.attachments.length > 0) {
@@ -182,21 +188,32 @@ function doPost(e) {
         options.attachments = blobs;
       }
       
-      // Send using MailApp or GmailApp
+      // Send using GmailApp or MailApp with alias fallback
       try {
-        MailApp.sendEmail(to, subject, body, options);
-      } catch (mailErr) {
         GmailApp.sendEmail(to, subject, body, options);
+      } catch (gErr) {
+        try {
+          MailApp.sendEmail(to, subject, body, options);
+        } catch (mErr) {
+          delete options.from;
+          GmailApp.sendEmail(to, subject, body, options);
+        }
       }
       
-      // Log Sent Record in Sheet
-      var logSheet = ss.getSheetByName('Sent_Logs');
-      if (!logSheet) {
-        logSheet = ss.insertSheet('Sent_Logs');
-        logSheet.appendRow(['Timestamp', 'From Name', 'To Recipient', 'Cc', 'Subject', 'Status']);
-        logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#f1f5f9');
+      // Log Sent Record in Sheet (if spreadsheet is present)
+      if (ss) {
+        try {
+          var logSheet = ss.getSheetByName('Sent_Logs');
+          if (!logSheet) {
+            logSheet = ss.insertSheet('Sent_Logs');
+            logSheet.appendRow(['Timestamp', 'From Name', 'From Email', 'To Recipient', 'Cc', 'Subject', 'Status']);
+            logSheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#f1f5f9');
+          }
+          logSheet.appendRow([new Date(), fromName, fromEmail || 'Default', to, payload.cc || '', subject, 'SENT']);
+        } catch (sheetErr) {
+          Logger.log("Log error: " + sheetErr);
+        }
       }
-      logSheet.appendRow([new Date(), fromName, to, payload.cc || '', subject, 'SENT']);
 
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Email sent successfully via Google Engine!' }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -208,20 +225,26 @@ function doPost(e) {
 
   // Action 4: Log Sent Email
   if (actionType === 'log_sent_email') {
-    var logSheet = ss.getSheetByName('Sent_Logs');
-    if (!logSheet) {
-      logSheet = ss.insertSheet('Sent_Logs');
-      logSheet.appendRow(['Timestamp', 'Sender Account', 'To Recipient', 'Cc', 'Subject', 'Status']);
-      logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#f1f5f9');
+    if (ss) {
+      try {
+        var logSheet = ss.getSheetByName('Sent_Logs');
+        if (!logSheet) {
+          logSheet = ss.insertSheet('Sent_Logs');
+          logSheet.appendRow(['Timestamp', 'Sender Account', 'To Recipient', 'Cc', 'Subject', 'Status']);
+          logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#f1f5f9');
+        }
+        logSheet.appendRow([
+          new Date(),
+          payload.sender || '',
+          payload.to || '',
+          payload.cc || '',
+          payload.subject || '',
+          payload.status || 'SENT'
+        ]);
+      } catch (logErr) {
+        Logger.log("Log err: " + logErr);
+      }
     }
-    logSheet.appendRow([
-      new Date(),
-      payload.sender || '',
-      payload.to || '',
-      payload.cc || '',
-      payload.subject || '',
-      payload.status || 'SENT'
-    ]);
     return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
